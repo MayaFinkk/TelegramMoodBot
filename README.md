@@ -1,6 +1,11 @@
 # TelegramMoodBot
 Mood bots that sends alerts to track your mood throughout the day
 
+
+<img width="817" height="460" alt="Screenshot 2026-10-22 at 14 49 22" src="https://github.com/user-attachments/assets/351ed63c-7fd4-457d-bac9-e3ed783f7baf" />
+
+
+
 Has following commands:
 - /times t1 t2 t3 … tn - sets n timers and these times daily
 - /stats - shows summary statistics for the past 3 days
@@ -13,6 +18,4 @@ Uses [Humor API]([url](https://humorapi.com/)) to send you a meme after you are 
 Records answers in a google sheet linked to your email.
 
 Send you summary statistics every Sunday with a brief overview of mood fluctuations this week.
-
-
 
