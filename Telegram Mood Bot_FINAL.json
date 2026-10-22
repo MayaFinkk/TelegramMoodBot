@@ -1,0 +1,1716 @@
+{
+  "name": "Telegram Mood Bot",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtMinute": 5
+            }
+          ]
+        }
+      },
+      "id": "afb58c06-65ac-42e6-af04-27a8236c2130",
+      "name": "Every Morning",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        384,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "eFSWLAisPaiKxyx7",
+          "cachedResultName": "mood_bot_settings"
+        },
+        "limit": 1
+      },
+      "id": "2c0341c1-a24e-4332-8ab5-8a1313a87738",
+      "name": "Load Settings For Planning",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        800,
+        224
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const s = $input.first().json;\nconst times = String(s.times || '').split(',').map(t => t.trim()).filter(Boolean);\nconst now = DateTime.now().setZone('Europe/Paris');\nconst out = [];\nfor (const t of times) {\n  const parts = t.split(':').map(Number);\n  const at = now.set({ hour: parts[0], minute: parts[1], second: 0, millisecond: 0 });\n  if (at > now.plus({ minutes: 1 })) {\n    out.push({ json: { time: t, scheduled_at: at.toISO(), version: Number(s.schedule_version) } });\n  }\n}\nreturn out;"
+      },
+      "id": "8afd71b4-17ce-4d63-8776-98bd971b153d",
+      "name": "Plan Check-ins",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1024,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "CfF20rHcq5DWfgZr"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "time": "={{ $json.time }}",
+            "scheduled_at": "={{ $json.scheduled_at }}",
+            "version": "={{ $json.version }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "time",
+              "displayName": "time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "scheduled_at",
+              "displayName": "scheduled_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "version",
+              "displayName": "version",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number"
+            }
+          ],
+          "attemptToConvertTypes": false
+        },
+        "mode": "each",
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      },
+      "id": "33f3e93c-015e-49de-bc55-2f1af7866c2a",
+      "name": "Start Check-ins",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1248,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "time"
+            },
+            {
+              "name": "scheduled_at"
+            },
+            {
+              "name": "version",
+              "type": "number"
+            }
+          ]
+        }
+      },
+      "id": "e445e648-cf44-4294-bb86-22afe249a786",
+      "name": "Check-in Request",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        416
+      ]
+    },
+    {
+      "parameters": {
+        "resume": "specificTime",
+        "dateTime": "={{ $json.scheduled_at }}"
+      },
+      "id": "5d0412c5-2544-40c5-8492-f1c36cd114c2",
+      "name": "Wait Until Check-in Time",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        272,
+        544
+      ],
+      "webhookId": "fbad8835-48bb-46bb-9727-266a86badecc"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "eFSWLAisPaiKxyx7",
+          "cachedResultName": "mood_bot_settings"
+        },
+        "limit": 1
+      },
+      "id": "403557aa-a1ea-4246-9d82-4e9dea456239",
+      "name": "Load Current Settings",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        496,
+        544
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "same-version",
+              "leftValue": "={{ Number($json.schedule_version) }}",
+              "rightValue": "={{ Number($(\"Check-in Request\").first().json.version) }}",
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "676cb9e5-b0f8-462d-a5f6-666573178ce2",
+      "name": "Still Scheduled",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        720,
+        544
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const s = $input.first().json;\nlet extra = [];\ntry { extra = JSON.parse(s.extra_questions || '[]'); } catch (e) { extra = []; }\nconst range = (a, b) => { const r = []; for (let i = a; i <= b; i++) r.push({ option: String(i) }); return r; };\nconst yesNo = { values: [{ option: 'Yes' }, { option: 'No' }] };\nconst fields = [\n  { fieldLabel: 'Mood (1-10)', fieldType: 'dropdown', fieldOptions: { values: range(1, 10) }, requiredField: true },\n  { fieldLabel: 'Did you sleep enough?', fieldType: 'radio', fieldOptions: yesNo, requiredField: true },\n  { fieldLabel: 'Did you socialise?', fieldType: 'radio', fieldOptions: { values: [{ option: 'Yes, in person' }, { option: 'Kinda, online' }, { option: 'No' }] }, requiredField: true },\n  { fieldLabel: 'Did you binge eat?', fieldType: 'radio', fieldOptions: yesNo, requiredField: true },\n];\nfor (const q of extra) {\n  if (q.type === 'scale') {\n    fields.push({ fieldLabel: q.label, fieldType: 'dropdown', fieldOptions: { values: range(Number(q.min), Number(q.max)) }, requiredField: true });\n  } else {\n    fields.push({ fieldLabel: q.label, fieldType: 'radio', fieldOptions: yesNo, requiredField: true });\n  }\n}\nreturn [{ json: { form_json: JSON.stringify(fields) } }];"
+      },
+      "id": "72d18e8b-ee39-43e2-b378-ad88210aa1dd",
+      "name": "Build Questionnaire",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        944,
+        544
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "chatId": "639423759",
+        "message": "Hi! Time for a quick well-being check-in. How are you doing?",
+        "responseType": "customForm",
+        "defineForm": "json",
+        "jsonOutput": "={{ $json.form_json }}",
+        "options": {
+          "messageButtonLabel": "Answer check-in",
+          "responseFormTitle": "Mood check-in",
+          "limitWaitTime": {
+            "values": {
+              "resumeAmount": 3
+            }
+          },
+          "appendAttribution": false
+        }
+      },
+      "id": "16e474b5-c88a-4b8a-94bf-812d0d647441",
+      "name": "Send Mood Questionnaire",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1168,
+        544
+      ],
+      "webhookId": "14fa3b57-fa2e-4983-90f9-62032c89ccc4",
+      "credentials": {
+        "telegramApi": {
+          "id": "LkF9S3xSeTzMULcf",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "mood-present",
+              "leftValue": "={{ $json.data && $json.data[\"Mood (1-10)\"] }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "917ad4c5-554d-43f6-966e-e6ff76b8f9ea",
+      "name": "Only Answered Check-ins",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        1392,
+        544
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const map = { 'Mood (1-10)': 'Mood', 'Did you sleep enough?': 'Slept Enough', 'Did you socialise?': 'Socialised', 'Did you binge eat?': 'Binge Ate' };\nconst now = DateTime.now().setZone('Europe/Paris');\nreturn $input.all().map(item => {\n  const d = item.json.data || {};\n  const row = { Date: now.toFormat('yyyy-MM-dd'), Time: now.toFormat('HH:mm') };\n  for (const [k, v] of Object.entries(d)) {\n    if (k === 'respondedAt') continue;\n    const col = map[k] || k;\n    row[col] = /^\\d+$/.test(String(v)) ? Number(v) : v;\n  }\n  return { json: row };\n});"
+      },
+      "id": "8e7e4297-e04f-4388-b3f6-551baa4bd6ad",
+      "name": "Format Log Row",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1616,
+        736
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1qohrMp8caFs1-vX7RhsTLV6xHkx8xH0NxvqKpe4LgSU",
+          "mode": "list",
+          "cachedResultName": "MoodTracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qohrMp8caFs1-vX7RhsTLV6xHkx8xH0NxvqKpe4LgSU/edit"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": "1921952982",
+          "cachedResultName": "Sheet1"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "schema": []
+        },
+        "options": {
+          "handlingExtraData": "insertInNewColumn"
+        }
+      },
+      "id": "66732fa9-78b0-4abb-8485-ab336b48c704",
+      "name": "Log Answers",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1616,
+        544
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ki6jA94gFMx71S3q",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {
+          "chatIds": "639423759"
+        }
+      },
+      "id": "9091953b-0a68-435d-ab0f-825477ba5b4b",
+      "name": "Telegram Commands",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "1faf8969-71f5-48ae-b23d-ad19f05757ea",
+      "credentials": {
+        "telegramApi": {
+          "id": "LkF9S3xSeTzMULcf",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "eFSWLAisPaiKxyx7",
+          "cachedResultName": "mood_bot_settings"
+        },
+        "limit": 1
+      },
+      "id": "f0f306a7-20dd-405b-a15e-c07a7725dd37",
+      "name": "Load Settings",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        272,
+        416
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const msg = $('Telegram Commands').first().json.message || {};\nconst text = String(msg.text || '').trim();\nconst s = $input.first().json;\nlet extra = [];\ntry { extra = JSON.parse(s.extra_questions || '[]'); } catch (e) { extra = []; }\nconst esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst m = text.match(/^\\/(\\w+)(?:@\\w+)?\\s*([\\s\\S]*)$/);\nconst cmd = m ? m[1].toLowerCase() : '';\nconst arg = m ? m[2].trim() : '';\nlet action = 'reply';\nlet reply = '';\nlet times = s.times;\nlet version = Number(s.schedule_version) || 1;\nconst help = 'Commands:\\n/times 10:00, 13:30, 17:00, 21:00 - set check-in times (any number)\\n/addquestion Did you exercise? - add a yes/no question\\n/addscale How motivated are you today? (1-5) - add a scale question\\n/stats - stats for the last 3 days';\n\nif (cmd === 'times') {\n  const parsed = arg.split(/[,;\\s]+/).filter(Boolean);\n  const valid = [];\n  const bad = [];\n  for (const p of parsed) {\n    const mm = p.match(/^([01]?\\d|2[0-3])[:.h]([0-5]\\d)$/);\n    if (mm) valid.push(mm[1].padStart(2, '0') + ':' + mm[2]); else bad.push(p);\n  }\n  const uniq = Array.from(new Set(valid)).sort();\n  if (!uniq.length || bad.length) {\n    reply = 'I could not read those times' + (bad.length ? ' (' + esc(bad.join(', ')) + ')' : '') + '. Use 24h format, e.g. /times 09:00, 14:00, 20:30';\n  } else {\n    action = 'update_times';\n    times = uniq.join(',');\n    version = version + 1;\n    reply = 'Done! You will now get ' + uniq.length + ' check-in' + (uniq.length > 1 ? 's' : '') + ' a day at: ' + uniq.join(', ') + '.';\n  }\n} else if (cmd === 'addquestion') {\n  if (!arg) {\n    reply = 'Please add the question text, e.g. /addquestion Did you exercise?';\n  } else {\n    extra.push({ label: arg, type: 'yesno' });\n    action = 'update_questions';\n    reply = 'Added yes/no question: <b>' + esc(arg) + '</b>. It will appear in your next check-in.';\n  }\n} else if (cmd === 'addscale') {\n  const sm = arg.match(/^([\\s\\S]*?)\\s*\\(\\s*(\\d+)\\s*-\\s*(\\d+)\\s*\\)\\s*$/);\n  let label = arg;\n  let min = 1;\n  let max = 10;\n  if (sm) { label = sm[1].trim(); min = Number(sm[2]); max = Number(sm[3]); }\n  if (!label) {\n    reply = 'Please add the question text, e.g. /addscale How motivated are you today? (1-5)';\n  } else if (min >= max || max - min > 20) {\n    reply = 'The scale range looks off. Use something like (1-5) or (0-10).';\n  } else {\n    extra.push({ label: label, type: 'scale', min: min, max: max });\n    action = 'update_questions';\n    reply = 'Added scale question: <b>' + esc(label) + '</b> (' + min + '-' + max + '). It will appear in your next check-in.';\n  }\n} else if (cmd === 'stats') {\n  action = 'stats';\n} else {\n  reply = help;\n}\n\nreturn [{ json: { action, reply, row_id: s.id, times, extra_questions: JSON.stringify(extra), schedule_version: version } }];"
+      },
+      "id": "cdd28fbe-b587-4e8f-95f0-e1472ef05ce6",
+      "name": "Parse Command",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        496,
+        416
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "update_times",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Times"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "update_questions",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Questions"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "stats",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Stats"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "Help / error"
+        }
+      },
+      "id": "91636c30-f610-421f-829b-17b2b8250983",
+      "name": "Route Command",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        720,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "eFSWLAisPaiKxyx7",
+          "cachedResultName": "mood_bot_settings"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyValue": "={{ $json.row_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "times": "={{ $json.times }}",
+            "schedule_version": "={{ $json.schedule_version }}"
+          },
+          "schema": [
+            {
+              "id": "times",
+              "displayName": "times",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "extra_questions",
+              "displayName": "extra_questions",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "schedule_version",
+              "displayName": "schedule_version",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a3c17e2a-be7e-4b7a-85e4-73168c6ddad9",
+      "name": "Save New Times",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        944,
+        416
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "639423759",
+        "text": "={{ $(\"Parse Command\").first().json.reply }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "c190ab04-d860-4f75-a955-c3b05fb64444",
+      "name": "Confirm Times",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1168,
+        416
+      ],
+      "webhookId": "4de93632-0521-4fe1-b47b-e59bbef6c5c5",
+      "credentials": {
+        "telegramApi": {
+          "id": "LkF9S3xSeTzMULcf",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "eFSWLAisPaiKxyx7",
+          "cachedResultName": "mood_bot_settings"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyValue": "={{ $json.row_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "extra_questions": "={{ $json.extra_questions }}"
+          },
+          "schema": [
+            {
+              "id": "times",
+              "displayName": "times",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "extra_questions",
+              "displayName": "extra_questions",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "schedule_version",
+              "displayName": "schedule_version",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "5be07602-1eb3-4165-8e2e-4d1b1a8576f2",
+      "name": "Save Questions",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        944,
+        736
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "639423759",
+        "text": "={{ $(\"Parse Command\").first().json.reply }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "7e6fe049-8a21-4418-a1e6-d3b9b74f560f",
+      "name": "Confirm Question",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1168,
+        736
+      ],
+      "webhookId": "967a3e5d-00f6-467e-ba80-1df22937a26d",
+      "credentials": {
+        "telegramApi": {
+          "id": "LkF9S3xSeTzMULcf",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1qohrMp8caFs1-vX7RhsTLV6xHkx8xH0NxvqKpe4LgSU",
+          "mode": "list",
+          "cachedResultName": "MoodTracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qohrMp8caFs1-vX7RhsTLV6xHkx8xH0NxvqKpe4LgSU/edit"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": "1921952982",
+          "cachedResultName": "Sheet1"
+        },
+        "options": {}
+      },
+      "id": "bc23d446-21e7-4c46-89fb-00859211a251",
+      "name": "Read Mood Log",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        944,
+        928
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ki6jA94gFMx71S3q",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const SOC = 'Socialised';\nconst SOC_OPTS = [['Yes, in person', 'in person'], ['Kinda, online', 'online'], ['No', 'no']];\nconst normSoc = v => { const s = String(v ?? '').trim(); return s.toLowerCase() === 'yes' ? 'Yes, in person' : s; };\nconst socBreakdown = vals => SOC_OPTS.map(([o, short]) => short + ' ' + vals.filter(v => v === o).length).join(' · ');\nconst rows = $input.all().map(i => i.json).filter(r => Object.keys(r).length > 0 && r.Date).map(r => (SOC in r && r[SOC] !== '' ? { ...r, [SOC]: normSoc(r[SOC]) } : r));\nconst esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst avg = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;\nconst median = a => { const s = [...a].sort((x, y) => x - y); const m = Math.floor(s.length / 2); return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };\nconst fmt = n => Number.isInteger(n) ? String(n) : n.toFixed(1);\nconst today = DateTime.now().setZone('Europe/Paris').startOf('day');\nconst skip = new Set(['Date', 'Time', 'row_number']);\nconst lines = ['<b>Your last 3 days</b>'];\nfor (let back = 2; back >= 0; back--) {\n  const day = today.minus({ days: back });\n  const key = day.toFormat('yyyy-MM-dd');\n  const dayRows = rows.filter(r => String(r.Date).slice(0, 10) === key);\n  const title = day.toFormat('ccc d LLL') + (back === 0 ? ' (today)' : '');\n  lines.push('');\n  if (!dayRows.length) { lines.push('<b>' + title + '</b>: no check-ins'); continue; }\n  lines.push('<b>' + title + '</b> - ' + dayRows.length + ' check-in' + (dayRows.length > 1 ? 's' : ''));\n  const cols = [];\n  for (const r of dayRows) for (const k of Object.keys(r)) if (!skip.has(k) && !cols.includes(k)) cols.push(k);\n  if (cols.includes('Mood')) { cols.splice(cols.indexOf('Mood'), 1); cols.unshift('Mood'); }\n  for (const c of cols) {\n    const vals = dayRows.map(r => r[c]).filter(v => v !== '' && v !== null && v !== undefined);\n    if (!vals.length) continue;\n    if (c === SOC) { lines.push('- ' + esc(c) + ': ' + socBreakdown(vals)); continue; }\n    const nums = vals.map(Number).filter(n => !isNaN(n));\n    if (nums.length === vals.length) {\n      lines.push('- ' + esc(c) + ': avg ' + avg(nums).toFixed(1) + ' (min ' + Math.min(...nums) + ', max ' + Math.max(...nums) + ')');\n    } else {\n      const yes = vals.filter(v => String(v).toLowerCase() === 'yes').length;\n      lines.push('- ' + esc(c) + ': yes ' + yes + '/' + vals.length);\n    }\n  }\n}\nconst from = today.minus({ days: 2 }).toFormat('yyyy-MM-dd');\nconst to = today.toFormat('yyyy-MM-dd');\nconst all = rows.filter(r => { const d = String(r.Date).slice(0, 10); return d >= from && d <= to; });\nconst moodOf = list => list.map(r => Number(r.Mood)).filter(n => !isNaN(n) && n > 0);\nconst moods = moodOf(all);\nif (moods.length) {\n  lines.push('');\n  lines.push('<b>3-day mood average:</b> ' + avg(moods).toFixed(1) + ' over ' + moods.length + ' check-ins');\n}\nif (all.some(r => r[SOC])) {\n  lines.push('');\n  lines.push('<b>Mood by socialising (last 3 days)</b>');\n  for (const [opt, short] of SOC_OPTS) {\n    const m = moodOf(all.filter(r => r[SOC] === opt));\n    const label = short.charAt(0).toUpperCase() + short.slice(1);\n    lines.push('- ' + label + ': ' + (m.length ? 'mean ' + avg(m).toFixed(1) + ', median ' + fmt(median(m)) + ' (' + m.length + ' check-in' + (m.length > 1 ? 's' : '') + ')' : 'no check-ins'));\n  }\n}\nreturn [{ json: { text: lines.join('\\n') } }];"
+      },
+      "id": "f92e1f9b-0e53-43f5-802c-05b2aec7bb4c",
+      "name": "Build 3-Day Stats",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1168,
+        928
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "639423759",
+        "text": "={{ $json.text }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "0d126637-a7ee-4864-951a-f5b181332175",
+      "name": "Send Stats",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1392,
+        736
+      ],
+      "webhookId": "67c07e4c-3983-42b6-ac2a-67f4b5626622",
+      "credentials": {
+        "telegramApi": {
+          "id": "LkF9S3xSeTzMULcf",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "639423759",
+        "text": "={{ $json.reply }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "b8b61346-dfc0-4189-9629-b0e29def7a39",
+      "name": "Send Help or Error",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        944,
+        1120
+      ],
+      "webhookId": "8b3ef27a-7b42-4221-9e30-84ab371bc118",
+      "credentials": {
+        "telegramApi": {
+          "id": "LkF9S3xSeTzMULcf",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtHour": 18
+            }
+          ]
+        }
+      },
+      "id": "3cee6687-098b-4600-bf2c-1e6885f11a2a",
+      "name": "Sunday 18:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        1312
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1qohrMp8caFs1-vX7RhsTLV6xHkx8xH0NxvqKpe4LgSU",
+          "mode": "list",
+          "cachedResultName": "MoodTracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qohrMp8caFs1-vX7RhsTLV6xHkx8xH0NxvqKpe4LgSU/edit"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": "1921952982",
+          "cachedResultName": "Sheet1"
+        },
+        "options": {}
+      },
+      "id": "b5433bc0-c9e1-4b21-b328-ebad045ec25a",
+      "name": "Read Week Log",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        272,
+        1312
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ki6jA94gFMx71S3q",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const SOC = 'Socialised';\nconst SOC_OPTS = [['Yes, in person', 'in person'], ['Kinda, online', 'online'], ['No', 'no']];\nconst normSoc = v => { const s = String(v ?? '').trim(); return s.toLowerCase() === 'yes' ? 'Yes, in person' : s; };\nconst socBreakdown = vals => SOC_OPTS.map(([o, short]) => short + ' ' + vals.filter(v => v === o).length).join(' · ');\nconst rows = $input.all().map(i => i.json).filter(r => Object.keys(r).length > 0 && r.Date).map(r => (SOC in r && r[SOC] !== '' ? { ...r, [SOC]: normSoc(r[SOC]) } : r));\nconst esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst median = a => { const s = [...a].sort((x, y) => x - y); const m = Math.floor(s.length / 2); return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };\nconst fmt = n => Number.isInteger(n) ? String(n) : n.toFixed(1);\nconst now = DateTime.now().setZone('Europe/Paris');\nconst monday = now.startOf('week');\nconst days = [];\nfor (let i = 0; i < 7; i++) days.push(monday.plus({ days: i }));\nconst keys = days.map(d => d.toFormat('yyyy-MM-dd'));\nconst week = rows.filter(r => keys.includes(String(r.Date).slice(0, 10)));\nconst avg = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;\nconst labels = days.map(d => d.toFormat('ccc d'));\nconst dailyMood = keys.map(k => {\n  const m = week.filter(r => String(r.Date).slice(0, 10) === k).map(r => Number(r.Mood)).filter(n => !isNaN(n) && n > 0);\n  const a = avg(m);\n  return a === null ? null : Math.round(a * 10) / 10;\n});\nconst skip = new Set(['Date', 'Time', 'row_number', 'Mood']);\nconst cols = [];\nfor (const r of week) for (const k of Object.keys(r)) if (!skip.has(k) && !cols.includes(k)) cols.push(k);\nconst yesLabels = [];\nconst yesPct = [];\nconst lines = [];\nlines.push('<b>Your week: ' + monday.toFormat('d LLL') + ' - ' + now.toFormat('d LLL') + '</b>');\nlines.push('');\nif (!week.length) {\n  lines.push('No check-ins were logged this week.');\n} else {\n  const moods = week.map(r => Number(r.Mood)).filter(n => !isNaN(n) && n > 0);\n  lines.push('Check-ins answered: ' + week.length);\n  if (moods.length) {\n    lines.push('Average mood: <b>' + avg(moods).toFixed(1) + '</b> / 10 (lowest ' + Math.min(...moods) + ', highest ' + Math.max(...moods) + ')');\n    const withData = keys.map((k, i) => ({ label: days[i].toFormat('cccc'), v: dailyMood[i] })).filter(x => x.v !== null);\n    if (withData.length) {\n      const best = withData.reduce((a, b) => (b.v > a.v ? b : a));\n      const worst = withData.reduce((a, b) => (b.v < a.v ? b : a));\n      lines.push('Best day: ' + best.label + ' (' + best.v + ') - toughest day: ' + worst.label + ' (' + worst.v + ')');\n    }\n    if (withData.length >= 2) {\n      const half = Math.floor(withData.length / 2);\n      const first = avg(withData.slice(0, half).map(x => x.v));\n      const second = avg(withData.slice(withData.length - half).map(x => x.v));\n      const diff = second - first;\n      lines.push('Trend: ' + (Math.abs(diff) < 0.5 ? 'fairly stable' : diff > 0 ? 'improving towards the end of the week' : 'dipping towards the end of the week') + ' (' + (diff >= 0 ? '+' : '') + diff.toFixed(1) + ')');\n    }\n  }\n  lines.push('');\n  lines.push('<b>Daily average mood</b>');\n  for (let i = 0; i < 7; i++) lines.push('- ' + labels[i] + ': ' + (dailyMood[i] === null ? 'no data' : dailyMood[i]));\n  const other = [];\n  for (const c of cols) {\n    const vals = week.map(r => r[c]).filter(v => v !== '' && v !== null && v !== undefined);\n    if (!vals.length) continue;\n    if (c === SOC) {\n      const inPerson = vals.filter(v => v === 'Yes, in person').length;\n      other.push('- ' + esc(c) + ': ' + socBreakdown(vals));\n      yesLabels.push('Socialised (in person)');\n      yesPct.push(Math.round((inPerson / vals.length) * 100));\n      continue;\n    }\n    const nums = vals.map(Number).filter(n => !isNaN(n));\n    if (nums.length === vals.length) {\n      other.push('- ' + esc(c) + ': avg ' + avg(nums).toFixed(1) + ' (min ' + Math.min(...nums) + ', max ' + Math.max(...nums) + ')');\n    } else {\n      const yes = vals.filter(v => String(v).toLowerCase() === 'yes').length;\n      const pct = Math.round((yes / vals.length) * 100);\n      other.push('- ' + esc(c) + ': yes ' + yes + '/' + vals.length + ' (' + pct + '%)');\n      yesLabels.push(c);\n      yesPct.push(pct);\n    }\n  }\n  if (other.length) {\n    lines.push('');\n    lines.push('<b>Other answers</b>');\n    for (const o of other) lines.push(o);\n  }\n}\nreturn [{ json: { text: lines.join('\\n'), has_data: week.length > 0, labels, daily_mood: dailyMood, yes_labels: yesLabels, yes_pct: yesPct } }];"
+      },
+      "id": "80bc2c8a-9401-4f3e-9ab5-a8c975778c18",
+      "name": "Build Weekly Stats",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        496,
+        1312
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "639423759",
+        "text": "={{ $json.text }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "db1585c2-fc38-4bb5-921c-d85b157b5cb6",
+      "name": "Send Weekly Summary",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        720,
+        1312
+      ],
+      "webhookId": "111dd4b4-3bc3-4ead-8191-028e4a2d6d94",
+      "credentials": {
+        "telegramApi": {
+          "id": "LkF9S3xSeTzMULcf",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "has-data",
+              "leftValue": "={{ $(\"Build Weekly Stats\").first().json.has_data }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "8842de6d-0230-46dd-8bfe-6208dabf1c32",
+      "name": "Has Data This Week",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        944,
+        1312
+      ]
+    },
+    {
+      "parameters": {
+        "chartType": "line",
+        "labelsMode": "array",
+        "labelsArray": "={{ JSON.stringify($(\"Build Weekly Stats\").first().json.labels) }}",
+        "data": "={{ $(\"Build Weekly Stats\").first().json.daily_mood }}",
+        "chartOptions": {
+          "backgroundColor": "white",
+          "height": 400,
+          "width": 700
+        },
+        "datasetOptions": {
+          "backgroundColor": "rgba(66,133,244,0.2)",
+          "borderColor": "#4285F4",
+          "fill": true,
+          "label": "Average mood (1-10)",
+          "pointStyle": "circle"
+        }
+      },
+      "id": "47025a7c-4577-4512-a4be-a918dfe62f3a",
+      "name": "Mood Chart",
+      "type": "n8n-nodes-base.quickChart",
+      "typeVersion": 1,
+      "position": [
+        1168,
+        1312
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "sendPhoto",
+        "chatId": "639423759",
+        "binaryData": true,
+        "additionalFields": {
+          "caption": "Your mood this week (daily average)",
+          "fileName": "mood-week.png"
+        }
+      },
+      "id": "eed13cba-986b-488e-9d90-f03601b15b3a",
+      "name": "Send Mood Chart",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1392,
+        1312
+      ],
+      "webhookId": "c293807e-f3ce-475a-b68e-3b7df2134549",
+      "credentials": {
+        "telegramApi": {
+          "id": "LkF9S3xSeTzMULcf",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "labelsMode": "array",
+        "labelsArray": "={{ JSON.stringify($(\"Build Weekly Stats\").first().json.yes_labels) }}",
+        "data": "={{ $(\"Build Weekly Stats\").first().json.yes_pct }}",
+        "chartOptions": {
+          "backgroundColor": "white",
+          "height": 400,
+          "horizontal": true,
+          "width": 700
+        },
+        "datasetOptions": {
+          "backgroundColor": "#34A853",
+          "borderColor": "#34A853",
+          "label": "% of check-ins answered Yes"
+        }
+      },
+      "id": "6500bbfe-e77c-4257-ad18-220fb4e8cf40",
+      "name": "Habits Chart",
+      "type": "n8n-nodes-base.quickChart",
+      "typeVersion": 1,
+      "position": [
+        1616,
+        1312
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "sendPhoto",
+        "chatId": "639423759",
+        "binaryData": true,
+        "additionalFields": {
+          "caption": "Yes answers this week (%)",
+          "fileName": "habits-week.png"
+        }
+      },
+      "id": "3589362c-5ced-4e5b-b55e-097629c39390",
+      "name": "Send Habits Chart",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1840,
+        1312
+      ],
+      "webhookId": "d6f97a18-2a9c-4467-bb6f-0f5518059e83",
+      "credentials": {
+        "telegramApi": {
+          "id": "LkF9S3xSeTzMULcf",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://api.humorapi.com/memes/random",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "max-age-days",
+              "value": "365"
+            },
+            {
+              "name": "media-type",
+              "value": "image"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "3c4bced1-cbef-4619-b55b-38e82b94f109",
+      "name": "Get Random Meme",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1840,
+        544
+      ],
+      "executeOnce": true,
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "KnJrtAc7ocSgxjH1",
+          "name": "Query Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "sendPhoto",
+        "chatId": "639423759",
+        "file": "={{ $json.body.url }}",
+        "additionalFields": {
+          "caption": "Thanks for checking in! Here's a meme for you 🙂"
+        }
+      },
+      "id": "08533068-5c70-4a71-a45e-04d2b8452cff",
+      "name": "Send Meme",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2288,
+        448
+      ],
+      "webhookId": "77dbf932-6ad2-49e5-a699-525f3b94a330",
+      "credentials": {
+        "telegramApi": {
+          "id": "LkF9S3xSeTzMULcf",
+          "name": "Telegram account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "ok",
+                    "leftValue": "={{ $json.statusCode === 200 && !!($json.body && $json.body.url) }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Meme"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "quota",
+                    "leftValue": "={{ Number($json.statusCode) }}",
+                    "rightValue": 402,
+                    "operator": {
+                      "type": "number",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Quota reached (402)"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "3268551e-158e-4a6c-9252-9a2a9a8602b9",
+      "name": "Meme or Fallback?",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        2064,
+        544
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "searchMethod": "query",
+        "queryString": "'1G7J1LMTd5XZB27SQN1I9wzGPPbiHlH-c' in parents and mimeType contains 'image/' and trashed = false",
+        "returnAll": true,
+        "filter": {},
+        "options": {
+          "fields": [
+            "id",
+            "name",
+            "mimeType"
+          ]
+        }
+      },
+      "id": "b41d5d04-a60b-4a00-80c4-26305fb7d4d7",
+      "name": "List Fallback Pictures",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        2288,
+        640
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "TV02rOmR2uWqPPsV",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const files = $input.all().map(i => i.json).filter(f => f && f.id);\nif (!files.length) return [];\nconst pick = files[Math.floor(Math.random() * files.length)];\nreturn [{ json: { id: pick.id, name: pick.name } }];"
+      },
+      "id": "e4873bb5-364d-4ed1-9236-914af1e27221",
+      "name": "Pick Random Picture",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2512,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "3d10911e-1740-4308-ad4d-612551e71121",
+      "name": "Download Picture",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        2736,
+        640
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "TV02rOmR2uWqPPsV",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "sendPhoto",
+        "chatId": "639423759",
+        "binaryData": true,
+        "additionalFields": {
+          "caption": "Thanks for checking in! No memes left today, so here's a picture from your stash 🙂"
+        }
+      },
+      "id": "524ea028-d397-4a65-a15b-d44965da8540",
+      "name": "Send Fallback Picture",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2960,
+        640
+      ],
+      "webhookId": "f3164d4e-f70c-4893-af7b-5d121b2517f2",
+      "credentials": {
+        "telegramApi": {
+          "id": "LkF9S3xSeTzMULcf",
+          "name": "Telegram account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Every Morning": {
+      "main": [
+        [
+          {
+            "node": "Load Settings For Planning",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Settings For Planning": {
+      "main": [
+        [
+          {
+            "node": "Plan Check-ins",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Plan Check-ins": {
+      "main": [
+        [
+          {
+            "node": "Start Check-ins",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check-in Request": {
+      "main": [
+        [
+          {
+            "node": "Wait Until Check-in Time",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait Until Check-in Time": {
+      "main": [
+        [
+          {
+            "node": "Load Current Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Current Settings": {
+      "main": [
+        [
+          {
+            "node": "Still Scheduled",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Still Scheduled": {
+      "main": [
+        [
+          {
+            "node": "Build Questionnaire",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Questionnaire": {
+      "main": [
+        [
+          {
+            "node": "Send Mood Questionnaire",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Mood Questionnaire": {
+      "main": [
+        [
+          {
+            "node": "Only Answered Check-ins",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Only Answered Check-ins": {
+      "main": [
+        [
+          {
+            "node": "Format Log Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Log Row": {
+      "main": [
+        [
+          {
+            "node": "Log Answers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Commands": {
+      "main": [
+        [
+          {
+            "node": "Load Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Settings": {
+      "main": [
+        [
+          {
+            "node": "Parse Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Command": {
+      "main": [
+        [
+          {
+            "node": "Route Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Command": {
+      "main": [
+        [
+          {
+            "node": "Save New Times",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Save Questions",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Read Mood Log",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Help or Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save New Times": {
+      "main": [
+        [
+          {
+            "node": "Confirm Times",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confirm Times": {
+      "main": [
+        [
+          {
+            "node": "Load Settings For Planning",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Questions": {
+      "main": [
+        [
+          {
+            "node": "Confirm Question",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Mood Log": {
+      "main": [
+        [
+          {
+            "node": "Build 3-Day Stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build 3-Day Stats": {
+      "main": [
+        [
+          {
+            "node": "Send Stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sunday 18:00": {
+      "main": [
+        [
+          {
+            "node": "Read Week Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Week Log": {
+      "main": [
+        [
+          {
+            "node": "Build Weekly Stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Weekly Stats": {
+      "main": [
+        [
+          {
+            "node": "Send Weekly Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Weekly Summary": {
+      "main": [
+        [
+          {
+            "node": "Has Data This Week",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Data This Week": {
+      "main": [
+        [
+          {
+            "node": "Mood Chart",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mood Chart": {
+      "main": [
+        [
+          {
+            "node": "Send Mood Chart",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Mood Chart": {
+      "main": [
+        [
+          {
+            "node": "Habits Chart",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Habits Chart": {
+      "main": [
+        [
+          {
+            "node": "Send Habits Chart",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Random Meme": {
+      "main": [
+        [
+          {
+            "node": "Meme or Fallback?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Meme or Fallback?": {
+      "main": [
+        [
+          {
+            "node": "Send Meme",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "List Fallback Pictures",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List Fallback Pictures": {
+      "main": [
+        [
+          {
+            "node": "Pick Random Picture",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pick Random Picture": {
+      "main": [
+        [
+          {
+            "node": "Download Picture",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Picture": {
+      "main": [
+        [
+          {
+            "node": "Send Fallback Picture",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Answers": {
+      "main": [
+        [
+          {
+            "node": "Get Random Meme",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timezone": "Europe/Paris",
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "75bd8961-f4bd-41e0-8eb3-a8d306f48391",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b455f29a4da26e063a811f4cbafd3b936b9e0d0462fb2a084d012955e3501295"
+  },
+  "nodeGroups": [
+    {
+      "id": "bf155b53-8dbe-4927-bd8d-dcc6c74411cb",
+      "name": "Send weekly summary",
+      "nodeIds": [
+        "b5433bc0-c9e1-4b21-b328-ebad045ec25a",
+        "80bc2c8a-9401-4f3e-9ab5-a8c975778c18",
+        "db1585c2-fc38-4bb5-921c-d85b157b5cb6",
+        "8842de6d-0230-46dd-8bfe-6208dabf1c32",
+        "47025a7c-4577-4512-a4be-a918dfe62f3a",
+        "eed13cba-986b-488e-9d90-f03601b15b3a",
+        "6500bbfe-e77c-4257-ad18-220fb4e8cf40",
+        "3589362c-5ced-4e5b-b55e-097629c39390"
+      ],
+      "description": "Sundays at 18:00: mood and habit stats since Monday, plus a mood trend line and a yes-rate chart"
+    },
+    {
+      "id": "bf6848de-57b8-4e07-98aa-65e759b0d5f6",
+      "name": "Plan today's check-ins",
+      "nodeIds": [
+        "2c0341c1-a24e-4332-8ab5-8a1313a87738",
+        "8afd71b4-17ce-4d63-8776-98bd971b153d",
+        "33f3e93c-015e-49de-bc55-2f1af7866c2a"
+      ],
+      "description": "Runs nightly and after a /times change: schedules one check-in for each remaining time today"
+    },
+    {
+      "id": "ab5571ad-c574-4384-808c-2c0081f3ea19",
+      "name": "Run one check-in",
+      "nodeIds": [
+        "5d0412c5-2544-40c5-8492-f1c36cd114c2",
+        "403557aa-a1ea-4246-9d82-4e9dea456239",
+        "676cb9e5-b0f8-462d-a5f6-666573178ce2",
+        "72d18e8b-ee39-43e2-b378-ad88210aa1dd",
+        "16e474b5-c88a-4b8a-94bf-812d0d647441",
+        "917ad4c5-554d-43f6-966e-e6ff76b8f9ea",
+        "8e7e4297-e04f-4388-b3f6-551baa4bd6ad",
+        "66732fa9-78b0-4abb-8485-ab336b48c704",
+        "3c4bced1-cbef-4619-b55b-38e82b94f109",
+        "3268551e-158e-4a6c-9252-9a2a9a8602b9",
+        "08533068-5c70-4a71-a45e-04d2b8452cff",
+        "b41d5d04-a60b-4a00-80c4-26305fb7d4d7",
+        "e4873bb5-364d-4ed1-9236-914af1e27221",
+        "3d10911e-1740-4308-ad4d-612551e71121",
+        "524ea028-d397-4a65-a15b-d44965da8540"
+      ],
+      "description": "Waits for the slot, skips it if times changed, sends the questionnaire, logs answers, then sends a random meme (or a picture from your Drive fold"
+    },
+    {
+      "id": "9836b77c-146f-4e43-9efa-45fb70fe540d",
+      "name": "Handle bot commands",
+      "nodeIds": [
+        "f0f306a7-20dd-405b-a15e-c07a7725dd37",
+        "cdd28fbe-b587-4e8f-95f0-e1472ef05ce6",
+        "91636c30-f610-421f-829b-17b2b8250983",
+        "a3c17e2a-be7e-4b7a-85e4-73168c6ddad9",
+        "c190ab04-d860-4f75-a955-c3b05fb64444",
+        "5be07602-1eb3-4165-8e2e-4d1b1a8576f2",
+        "7e6fe049-8a21-4418-a1e6-d3b9b74f560f",
+        "bc23d446-21e7-4c46-89fb-00859211a251",
+        "f92e1f9b-0e53-43f5-802c-05b2aec7bb4c",
+        "0d126637-a7ee-4864-951a-f5b181332175",
+        "b8b61346-dfc0-4189-9629-b0e29def7a39"
+      ],
+      "description": "Your Telegram messages: /times, /addquestion, /addscale and /stats, with a reply for each"
+    }
+  ],
+  "id": "CfF20rHcq5DWfgZr",
+  "tags": []
+}
