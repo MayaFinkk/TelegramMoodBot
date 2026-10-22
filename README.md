@@ -15,6 +15,11 @@ Has following commands:
 - /addscale (scale) - adds a scale question
 - any other input shows table of commands
 
+<img width="627" height="240" alt="Screenshot 2026-10-22 at 14 54 03" src="https://github.com/user-attachments/assets/d2910ce7-a000-4a93-a030-d3c76df76b33" />
+
+<img width="312" height="417" alt="Screenshot 2026-10-22 at 14 54 13" src="https://github.com/user-attachments/assets/52c0a4e5-c1e3-42f0-83e4-18faef547b35" />
+
+
 Uses [Humor API]([url](https://humorapi.com/)) to send you a meme after you are done with the form.
 
 Records answers in a google sheet linked to your email.
